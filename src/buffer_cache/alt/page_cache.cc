@@ -487,9 +487,9 @@ repli_timestamp_t current_page_acq_t::recency() {
     assert_thread();
     rassert(snapshotted_page_.has() || current_page_ != NULL);
 
-    // We wait for write_cond_ when getting the recency, to prevent an inconsistent
-    // view of the recency from being seen by writers that do not manually touch the
-    // recency.
+    // We wait for write_cond_ when getting the recency (if we're a write acquirer)
+    // so that we can't see the recency change before/after the write_cond_ is
+    // pulsed.
     if (access_ == access_t::read) {
         read_cond_.wait();
     } else {

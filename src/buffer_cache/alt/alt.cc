@@ -678,7 +678,9 @@ repli_timestamp_t buf_lock_t::get_recency() const {
     guarantee(cpa != NULL);
 
     // Emulate the cpa->recency() waiting behavior.  We only do this waiting here so
-    // that we can guarantee(!empty()) after it's pulsed.
+    // that we can guarantee(!empty()) after it's pulsed.  (FYI: We and the
+    // page_cache wait for the write_acq_signal() so that a write acquirer can't see
+    // its recency change before/after the write_acq_signal() gets pulsed.)
     if (access() == access_t::read) {
         cpa->read_acq_signal()->wait();
     } else {
