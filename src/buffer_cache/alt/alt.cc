@@ -676,7 +676,14 @@ repli_timestamp_t buf_lock_t::get_recency() const {
     guarantee(!empty());
     current_page_acq_t *cpa = current_page_acq();
     guarantee(cpa != NULL);
-    cpa->read_acq_signal()->wait();
+
+    // Emulate the cpa->recency() waiting behavior.  We only do this waiting here so
+    // that we can guarantee(!empty()) after it's pulsed.
+    if (access() == access_t::read) {
+        cpa->read_acq_signal()->wait();
+    } else {
+        cpa->write_acq_signal()->wait();
+    }
 
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
@@ -687,7 +694,9 @@ void buf_lock_t::manually_touch_recency(repli_timestamp_t recency) {
     guarantee(!empty());
     rassert(snapshot_node_ == NULL);
 
+    // We only wait here so that we can guarantee(!empty()) after it's pulsed.
     current_page_acq_->write_acq_signal()->wait();
+
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
     {
@@ -701,6 +710,7 @@ page_t *buf_lock_t::get_held_page_for_read() {
     guarantee(!empty());
     current_page_acq_t *cpa = current_page_acq();
     guarantee(cpa != NULL);
+    // We only wait here so that we can guarantee(!empty()) after it's pulsed.
     cpa->read_acq_signal()->wait();
 
     ASSERT_FINITE_CORO_WAITING;
@@ -711,6 +721,7 @@ page_t *buf_lock_t::get_held_page_for_read() {
 page_t *buf_lock_t::get_held_page_for_write() {
     guarantee(!empty());
     rassert(snapshot_node_ == NULL);
+    // We only wait here so that we can guarantee(!empty()) after it's pulsed.
     current_page_acq_->write_acq_signal()->wait();
 
     ASSERT_FINITE_CORO_WAITING;
