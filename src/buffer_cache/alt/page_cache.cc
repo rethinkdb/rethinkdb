@@ -2,6 +2,7 @@
 #include "buffer_cache/alt/page_cache.hpp"
 
 #include <algorithm>
+#include <functional>
 #include <stack>
 
 #include "arch/runtime/coroutines.hpp"
@@ -98,6 +99,34 @@ void page_cache_t::resize_current_pages_to_id(block_id_t block_id) {
     }
 }
 
+void page_cache_t::on_memory_limit_change(uint64_t new_limit) {
+    if (new_limit == 0) {
+        return;
+    }
+
+    // Re-initiate read ahead if the cache is less than 3/4 utilized.
+    const uint64_t RESTART_FRACTION_NUMERATOR = 3;
+    const uint64_t RESTART_FRACTION_DENOMINATOR = 4;
+
+    uint64_t current_size = evicter_.in_memory_size();
+    bool start_read_ahead = current_size * RESTART_FRACTION_DENOMINATOR
+                            < new_limit * RESTART_FRACTION_NUMERATOR;
+    start_read_ahead = start_read_ahead && !read_ahead_cb_existence_.has_lock();
+    if (start_read_ahead) {
+        rassert(new_limit > current_size);
+        uint64_t bytes_to_read = new_limit - current_size;
+        // Setting read_ahead_cb_existence_ makes sure that
+        // a) we don't start more than one page_read_ahead_cb_t
+        // b) the cache isn't shut down while we are starting the read ahead
+        read_ahead_cb_existence_ = drainer_->lock();
+        {
+            on_thread_t thread_switcher(serializer_->home_thread());
+            rassert(read_ahead_cb_ == NULL);
+            read_ahead_cb_ = new page_read_ahead_cb_t(serializer_, this, bytes_to_read);
+        }
+    }
+}
+
 void page_cache_t::add_read_ahead_buf(block_id_t block_id,
                                       ser_buffer_t *buf_ptr,
                                       const counted_t<standard_block_token_t> &token) {
@@ -162,11 +191,17 @@ page_cache_t::page_cache_t(serializer_t *serializer,
         index_write_sink_.init(new fifo_enforcer_sink_t);
         recencies_ = serializer->get_all_recencies();
     }
+
+    // Let the evicter tell us when the memory limit changes in case
+    // we want to restart read_ahead.
+    evicter_.set_on_memory_limit_change_cb(
+        std::bind(&page_cache_t::on_memory_limit_change, this, ph::_1));
 }
 
 page_cache_t::~page_cache_t() {
     assert_thread();
 
+    evicter_.set_on_memory_limit_change_cb(std::function<void(int64_t)>());
     have_read_ahead_cb_destroyed();
 
     drainer_.reset();

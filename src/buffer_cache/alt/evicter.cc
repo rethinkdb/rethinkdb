@@ -24,7 +24,14 @@ void evicter_t::update_memory_limit(uint64_t new_memory_limit) {
     cache_miss_counter_ = 0;
     memory_limit_ = new_memory_limit;
     evict_if_necessary();
-    // TODO: read-ahead?
+    if (on_memory_limit_change_cb_) {
+        on_memory_limit_change_cb_(new_memory_limit);
+    }
+}
+
+void evicter_t::set_on_memory_limit_change_cb(
+        const std::function<void(uint64_t)> &on_memory_limit_change_cb) {
+    on_memory_limit_change_cb_ = on_memory_limit_change_cb;
 }
 
 void evicter_t::add_not_yet_loaded(page_t *page) {
