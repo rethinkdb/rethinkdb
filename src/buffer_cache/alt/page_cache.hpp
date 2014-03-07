@@ -170,6 +170,8 @@ public:
     signal_t *write_acq_signal();
 
     page_t *current_page_for_read(cache_account_t *account);
+    repli_timestamp_t recency();
+
     page_t *current_page_for_write(cache_account_t *account);
 
     // Returns current_page_for_read, except it guarantees that the page acq has
@@ -178,7 +180,6 @@ public:
 
     block_id_t block_id() const { return block_id_; }
     access_t access() const { return access_; }
-    repli_timestamp_t recency() const;
 
     void mark_deleted();
 
@@ -208,8 +209,8 @@ private:
 
     current_page_help_t help() const;
 
-    void pulse_read_available(repli_timestamp_t recency);
-    void pulse_write_available(repli_timestamp_t recency);
+    void pulse_read_available();
+    void pulse_write_available();
 
     page_cache_t *page_cache_;
     page_txn_t *the_txn_;
@@ -223,9 +224,6 @@ private:
     timestamped_page_ptr_t snapshotted_page_;
     cond_t read_cond_;
     cond_t write_cond_;
-
-    // The recency for our acquisition of the page.
-    repli_timestamp_t recency_;
 
     // The block version for our acquisition of the page -- every write acquirer sees
     // a greater block version than the previous acquirer.  The current page's block
@@ -374,6 +372,7 @@ private:
 
     void im_waiting_for_flush(std::set<page_txn_t *> txns);
 
+    friend class current_page_acq_t;
     repli_timestamp_t recency_for_block_id(block_id_t id) {
         return recencies_.size() <= id
             ? repli_timestamp_t::invalid

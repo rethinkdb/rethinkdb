@@ -342,20 +342,20 @@ struct current_page_help_t {
 };
 
 current_page_acq_t::current_page_acq_t()
-    : page_cache_(NULL), the_txn_(NULL), recency_(valgrind_undefined(repli_timestamp_t::invalid)) { }
+    : page_cache_(NULL), the_txn_(NULL) { }
 
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
                                        block_id_t block_id,
                                        access_t access,
                                        cache_account_t *account,
                                        page_create_t create)
-    : page_cache_(NULL), the_txn_(NULL), recency_(valgrind_undefined(repli_timestamp_t::invalid)) {
+    : page_cache_(NULL), the_txn_(NULL) {
     init(txn, block_id, access, account, create);
 }
 
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
                                        alt_create_t create)
-    : page_cache_(NULL), the_txn_(NULL), recency_(valgrind_undefined(repli_timestamp_t::invalid)) {
+    : page_cache_(NULL), the_txn_(NULL) {
     init(txn, create);
 }
 
@@ -363,7 +363,7 @@ current_page_acq_t::current_page_acq_t(page_cache_t *page_cache,
                                        block_id_t block_id,
                                        cache_account_t *account,
                                        read_access_t read)
-    : page_cache_(NULL), the_txn_(NULL), recency_(valgrind_undefined(repli_timestamp_t::invalid)) {
+    : page_cache_(NULL), the_txn_(NULL) {
     init(page_cache, block_id, account, read);
 }
 
@@ -483,10 +483,15 @@ page_t *current_page_acq_t::current_page_for_read(cache_account_t *account) {
     return current_page_->the_page_for_read(help(), account);
 }
 
-repli_timestamp_t current_page_acq_t::recency() const {
+repli_timestamp_t current_page_acq_t::recency() {
     assert_thread();
-    rassert(read_cond_.is_pulsed());
-    return recency_;
+    rassert(snapshotted_page_.has() || current_page_ != NULL);
+    read_cond_.wait();
+    if (snapshotted_page_.has()) {
+        return snapshotted_page_.timestamp();
+    }
+    rassert(current_page_ != NULL);
+    return page_cache_->recency_for_block_id(block_id_);
 }
 
 page_t *current_page_acq_t::current_page_for_write(cache_account_t *account) {
@@ -530,15 +535,13 @@ current_page_help_t current_page_acq_t::help() const {
     return current_page_help_t(block_id(), page_cache_);
 }
 
-void current_page_acq_t::pulse_read_available(repli_timestamp_t recency) {
+void current_page_acq_t::pulse_read_available() {
     assert_thread();
-    recency_ = recency;
     read_cond_.pulse_if_not_already_pulsed();
 }
 
-void current_page_acq_t::pulse_write_available(repli_timestamp_t recency) {
+void current_page_acq_t::pulse_write_available() {
     assert_thread();
-    recency_ = recency;
     write_cond_.pulse_if_not_already_pulsed();
 }
 
@@ -677,7 +680,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
     while (cur != NULL) {
         // We know that the previous node has read access and has been pulsed as
         // readable, so we pulse the current node as readable.
-        cur->pulse_read_available(current_recency);
+        cur->pulse_read_available();
 
         if (cur->access_ == access_t::read) {
             current_page_acq_t *next = acquirers_.next(cur);
@@ -748,7 +751,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                 repli_timestamp_t superceding
                     = superceding_recency(current_recency, cur->the_txn_->this_txn_recency_);
                 help.page_cache->set_recency_for_block_id(help.block_id, superceding);
-                cur->pulse_write_available(superceding);
+                cur->pulse_write_available();
             }
             break;
         }
