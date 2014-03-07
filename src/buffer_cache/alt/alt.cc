@@ -673,7 +673,6 @@ void buf_lock_t::detach_child(block_id_t child_id) {
 }
 
 repli_timestamp_t buf_lock_t::get_recency() const {
-    ASSERT_NO_CORO_WAITING;
     guarantee(!empty());
     current_page_acq_t *cpa = current_page_acq();
     guarantee(cpa != NULL);
@@ -682,6 +681,20 @@ repli_timestamp_t buf_lock_t::get_recency() const {
     ASSERT_FINITE_CORO_WAITING;
     guarantee(!empty());
     return cpa->recency();
+}
+
+void buf_lock_t::manually_touch_recency(repli_timestamp_t recency) {
+    guarantee(!empty());
+    rassert(snapshot_node_ == NULL);
+
+    current_page_acq_->write_acq_signal()->wait();
+    ASSERT_FINITE_CORO_WAITING;
+    guarantee(!empty());
+    {
+        repli_timestamp_t s = superceding_recency(current_page_acq_->recency(), recency);
+        guarantee(s == recency);
+    }
+    current_page_acq_->manually_touch_recency(recency);
 }
 
 page_t *buf_lock_t::get_held_page_for_read() {

@@ -504,6 +504,15 @@ page_t *current_page_acq_t::current_page_for_write(cache_account_t *account) {
     return current_page_->the_page_for_write(help(), account);
 }
 
+void current_page_acq_t::manually_touch_recency(repli_timestamp_t recency) {
+    assert_thread();
+    rassert(access_ == access_t::write);
+    rassert(current_page_ != NULL);
+    write_cond_.wait();
+    rassert(current_page_ != NULL);
+    page_cache_->set_recency_for_block_id(block_id_, recency);
+}
+
 void current_page_acq_t::mark_deleted() {
     assert_thread();
     rassert(access_ == access_t::write);

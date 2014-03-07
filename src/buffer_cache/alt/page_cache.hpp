@@ -173,6 +173,7 @@ public:
     repli_timestamp_t recency();
 
     page_t *current_page_for_write(cache_account_t *account);
+    void manually_touch_recency(repli_timestamp_t recency);
 
     // Returns current_page_for_read, except it guarantees that the page acq has
     // already snapshotted the page and is not waiting for the page_t *.
