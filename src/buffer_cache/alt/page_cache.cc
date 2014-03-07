@@ -670,12 +670,14 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
         }
     }
 
+    const repli_timestamp_t current_recency = help.page_cache->recency_for_block_id(help.block_id);
+
     // It's time to pulse the pulsables.
     current_page_acq_t *cur = acq;
     while (cur != NULL) {
         // We know that the previous node has read access and has been pulsed as
         // readable, so we pulse the current node as readable.
-        cur->pulse_read_available(help.page_cache->recency_for_block_id(help.block_id));
+        cur->pulse_read_available(current_recency);
 
         if (cur->access_ == access_t::read) {
             current_page_acq_t *next = acquirers_.next(cur);
@@ -705,7 +707,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                 // This is bad, because there's some code, that merely wants to
                 // delete a page, or get its recency, that will surprisingly load it.
                 cur->snapshotted_page_.init(
-                        cur->recency_,
+                        current_recency,
                         the_page_for_read_or_deleted(help,
                                                      account),
                         help.page_cache);
@@ -743,11 +745,10 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                                      std::move(buf),
                                      help.page_cache);
                 }
-                repli_timestamp_t r
-                    = superceding_recency(help.page_cache->recency_for_block_id(help.block_id),
-                                          cur->the_txn_->this_txn_recency_);
-                help.page_cache->set_recency_for_block_id(help.block_id, r);
-                cur->pulse_write_available(r);
+                repli_timestamp_t superceding
+                    = superceding_recency(current_recency, cur->the_txn_->this_txn_recency_);
+                help.page_cache->set_recency_for_block_id(help.block_id, superceding);
+                cur->pulse_write_available(superceding);
             }
             break;
         }
