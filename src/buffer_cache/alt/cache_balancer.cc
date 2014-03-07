@@ -51,27 +51,6 @@ alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
     misses(evicter->get_cache_misses()),
     accesses(evicter->get_cache_accesses()) { }
 
-void alt_cache_balancer_t::cache_data_t::calculate_new_size(uint64_t total_evicters,
-                                                            uint64_t total_cache_size,
-                                                            uint64_t total_misses,
-                                                            UNUSED uint64_t total_accesses,
-                                                            uint64_t base_mem_per_store,
-                                                            uint64_t damping_factor) {
-    // TODO: don't grow a cache that isn't using all of its memory
-    int64_t temp = total_cache_size;
-    temp -= total_evicters * base_mem_per_store;
-    temp = std::max(temp, static_cast<int64_t>(0));
-    temp *= misses;
-    temp /= total_misses;
-    temp += base_mem_per_store;
-
-    // Apply damping to keep cache from changing size too quickly
-    temp -= old_size;
-    temp /= static_cast<int64_t>(damping_factor);
-    temp += old_size;
-    new_size = temp;
-}
-
 void alt_cache_balancer_t::coro_pool_callback(void *, UNUSED signal_t *interruptor) {
     assert_thread();
     scoped_array_t<std::vector<cache_data_t> > per_thread_data;
@@ -104,9 +83,20 @@ void alt_cache_balancer_t::coro_pool_callback(void *, UNUSED signal_t *interrupt
         for (size_t i = 0; i < per_thread_data.size(); ++i) {
             for (size_t j = 0; j < per_thread_data[i].size(); ++j) {
                 cache_data_t *data = &per_thread_data[i][j];
-                data->calculate_new_size(total_evicters, total_cache_size,
-                                         total_misses, total_accesses,
-                                         base_mem_per_store, damping_factor);
+
+                // TODO: don't grow a cache that isn't using all of its memory
+                int64_t temp = total_cache_size;
+                temp -= total_evicters * base_mem_per_store;
+                temp = std::max(temp, static_cast<int64_t>(0));
+                temp *= data->misses;
+                temp /= total_misses;
+                temp += base_mem_per_store;
+
+                // Apply damping to keep cache from changing size too quickly
+                temp -= data->old_size;
+                temp /= static_cast<int64_t>(damping_factor);
+                temp += data->old_size;
+                data->new_size = temp;
             }
         }
 
