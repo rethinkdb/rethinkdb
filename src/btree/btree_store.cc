@@ -265,7 +265,13 @@ void btree_store_t<protocol_t>::lock_sindex_queue(buf_lock_t *sindex_block,
     // be made that this mutex could just go away and having write access to
     // the sindex block could fill the same role.
     guarantee(!sindex_block->empty());
-    sindex_block->write_acq_signal()->wait();
+    if (sindex_block->access() == access_t::write) {
+        sindex_block->write_acq_signal()->wait();
+    } else {
+        // `bring_sindexes_up_to_date()` calls `lock_sindex_queue()` with only a read
+        // acquisition. It is ok in that context, and we have to handle it here.
+        sindex_block->read_acq_signal()->wait();
+    }
     acq->reset(&sindex_queue_mutex);
 }
 
