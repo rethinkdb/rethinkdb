@@ -7,6 +7,13 @@
 #include "debug.hpp"
 #include "logger.hpp"
 
+alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
+    evicter(_evicter),
+    new_size(0),
+    old_size(evicter->get_memory_limit()),
+    used_size(evicter->in_memory_size()),
+    evictions(evicter->get_cache_evictions()) { }
+
 alt_cache_balancer_t::alt_cache_balancer_t(uint64_t _total_cache_size,
                                            uint64_t _base_mem_per_store,
                                            uint64_t _damping_factor,
@@ -43,14 +50,6 @@ void alt_cache_balancer_t::on_ring() {
     pool_queue.give_value(NULL);
 }
 
-alt_cache_balancer_t::cache_data_t::cache_data_t(alt::evicter_t *_evicter) :
-    evicter(_evicter),
-    new_size(0),
-    old_size(evicter->get_memory_limit()),
-    used_size(evicter->in_memory_size()),
-    misses(evicter->get_cache_misses()),
-    accesses(evicter->get_cache_accesses()) { }
-
 void alt_cache_balancer_t::coro_pool_callback(void *, UNUSED signal_t *interruptor) {
     assert_thread();
     scoped_array_t<std::vector<cache_data_t> > per_thread_data;
@@ -58,8 +57,7 @@ void alt_cache_balancer_t::coro_pool_callback(void *, UNUSED signal_t *interrupt
 
     // Get cache sizes from shards on each thread
     size_t total_evicters = 0;
-    uint64_t total_misses = 0;
-    uint64_t total_accesses = 0;
+    uint64_t total_evictions = 0;
 
     for (size_t i = 0; i < thread_info.size(); ++i) {
         std::set<alt::evicter_t*> *current_evicters = &thread_info[i].evicters;
@@ -73,23 +71,21 @@ void alt_cache_balancer_t::coro_pool_callback(void *, UNUSED signal_t *interrupt
             cache_data_t data(*j);
             per_thread_data[i].push_back(data);
 
-            total_misses += data.misses;
-            total_accesses += data.accesses;
+            total_evictions += data.evictions;
         }
     }
 
-    // Calculate new cache sizes if there are cache misses
-    if (total_misses > 0) {
+    // Calculate new cache sizes if there were evictions
+    if (total_evictions > 0) {
         for (size_t i = 0; i < per_thread_data.size(); ++i) {
             for (size_t j = 0; j < per_thread_data[i].size(); ++j) {
                 cache_data_t *data = &per_thread_data[i][j];
 
-                // TODO: don't grow a cache that isn't using all of its memory
                 int64_t temp = total_cache_size;
                 temp -= total_evicters * base_mem_per_store;
                 temp = std::max(temp, static_cast<int64_t>(0));
-                temp *= data->misses;
-                temp /= total_misses;
+                temp *= data->evictions;
+                temp /= total_evictions;
                 temp += base_mem_per_store;
 
                 // Apply damping to keep cache from changing size too quickly

@@ -47,19 +47,15 @@ public:
         return in_memory_size_;
     }
 
-    uint64_t get_cache_misses() const {
-        return cache_miss_counter_;
-    }
-
-    uint64_t get_cache_accesses() const {
-        return cache_access_counter_;
+    uint64_t get_cache_evictions() const {
+        return eviction_counter_;
     }
 
     static const uint64_t INITIAL_ACCESS_TIME = UINT64_MAX - 100;
 
 private:
     void update_in_memory_size();
-    void evict_if_necessary();
+    void evict_if_necessary(bool count_evictions);
 
     cache_balancer_t *const balancer_;
     uint64_t memory_limit_;
@@ -71,8 +67,7 @@ private:
 
     // These are updated every time a page is loaded,
     // and cleared when cache memory limits are re-evaluated
-    uint64_t cache_access_counter_;
-    uint64_t cache_miss_counter_;
+    uint64_t eviction_counter_;
 
     // This gets incremented every time a page is accessed.
     uint64_t access_time_counter_;

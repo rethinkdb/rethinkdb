@@ -7,7 +7,7 @@ namespace alt {
 
 evicter_t::evicter_t(cache_balancer_t *balancer)
     : balancer_(balancer),
-      cache_miss_counter_(0),
+      eviction_counter_(0),
       access_time_counter_(INITIAL_ACCESS_TIME)
 {
     guarantee(balancer_ != NULL);
@@ -21,9 +21,9 @@ evicter_t::~evicter_t() {
 }
 
 void evicter_t::update_memory_limit(uint64_t new_memory_limit) {
-    cache_miss_counter_ = 0;
+    eviction_counter_ = 0;
     memory_limit_ = new_memory_limit;
-    evict_if_necessary();
+    evict_if_necessary(false);
     if (on_memory_limit_change_cb_) {
         on_memory_limit_change_cb_(new_memory_limit);
     }
@@ -38,14 +38,13 @@ void evicter_t::add_not_yet_loaded(page_t *page) {
     assert_thread();
     unevictable_.add_without_size(page);
     update_in_memory_size();
-    ++cache_miss_counter_;
 }
 
 void evicter_t::add_now_loaded_size(uint32_t ser_buf_size) {
     assert_thread();
     unevictable_.add_size(ser_buf_size);
     update_in_memory_size();
-    evict_if_necessary();
+    evict_if_necessary(true);
 }
 
 bool evicter_t::page_is_in_unevictable_bag(page_t *page) const {
@@ -57,14 +56,14 @@ void evicter_t::add_to_evictable_unbacked(page_t *page) {
     assert_thread();
     evictable_unbacked_.add(page, page->ser_buf_size_);
     update_in_memory_size();
-    evict_if_necessary();
+    evict_if_necessary(true);
 }
 
 void evicter_t::add_to_evictable_disk_backed(page_t *page) {
     assert_thread();
     evictable_disk_backed_.add(page, page->ser_buf_size_);
     update_in_memory_size();
-    evict_if_necessary();
+    evict_if_necessary(true);
 }
 
 void evicter_t::move_unevictable_to_evictable(page_t *page) {
@@ -76,7 +75,7 @@ void evicter_t::move_unevictable_to_evictable(page_t *page) {
             || new_bag == &evictable_unbacked_);
     new_bag->add(page, page->ser_buf_size_);
     update_in_memory_size();
-    evict_if_necessary();
+    evict_if_necessary(true);
 }
 
 void evicter_t::change_to_correct_eviction_bag(eviction_bag_t *current_bag,
@@ -87,7 +86,7 @@ void evicter_t::change_to_correct_eviction_bag(eviction_bag_t *current_bag,
     eviction_bag_t *new_bag = correct_eviction_category(page);
     new_bag->add(page, page->ser_buf_size_);
     update_in_memory_size();
-    evict_if_necessary();
+    evict_if_necessary(true);
 }
 
 eviction_bag_t *evicter_t::correct_eviction_category(page_t *page) {
@@ -110,7 +109,7 @@ void evicter_t::remove_page(page_t *page) {
     eviction_bag_t *bag = correct_eviction_category(page);
     bag->remove(page, page->ser_buf_size_);
     update_in_memory_size();
-    evict_if_necessary();
+    evict_if_necessary(true);
 }
 
 void evicter_t::update_in_memory_size() {
@@ -124,7 +123,7 @@ bool evicter_t::interested_in_read_ahead_block(uint32_t ser_block_size) const {
     return in_memory_size() + ser_block_size < memory_limit_;
 }
 
-void evicter_t::evict_if_necessary() {
+void evicter_t::evict_if_necessary(bool count_evictions) {
     assert_thread();
     // KSI: Implement eviction of unbacked evictables too.  When flushing, you
     // could use the page_t::eviction_index_ field to identify pages that are
@@ -137,6 +136,10 @@ void evicter_t::evict_if_necessary() {
         evicted_.add(page, page->ser_buf_size_);
         page->evict_self();
         update_in_memory_size();
+
+        if (count_evictions) {
+            ++eviction_counter_;
+        }
     }
 }
 

@@ -86,8 +86,7 @@ private:
         uint64_t new_size;
         uint64_t old_size;
         uint64_t used_size;
-        uint64_t misses;
-        uint64_t accesses;
+        uint64_t evictions;
     };
 
     // Helper function that rebalances all the shards on a given thread
