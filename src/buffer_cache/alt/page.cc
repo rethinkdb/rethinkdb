@@ -396,4 +396,13 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache,
     return page_;
 }
 
+timestamped_page_ptr_t::timestamped_page_ptr_t()
+    : timestamp_(repli_timestamp_t::invalid) {
+    (void)timestamp_;  // RSI
+}
+
+timestamped_page_ptr_t::~timestamped_page_ptr_t() { }
+
+
+
 }  // namespace alt

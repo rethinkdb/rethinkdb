@@ -3,6 +3,7 @@
 
 #include "concurrency/cond_var.hpp"
 #include "containers/backindex_bag.hpp"
+#include "repli_timestamp.hpp"
 #include "serializer/types.hpp"
 
 class cache_account_t;
@@ -139,6 +140,17 @@ private:
     // KSI: Get rid of this variable.
     page_cache_t *page_cache_;
     DISABLE_COPYING(page_ptr_t);
+};
+
+class timestamped_page_ptr_t {
+public:
+    timestamped_page_ptr_t();
+    ~timestamped_page_ptr_t();
+
+private:
+    repli_timestamp_t timestamp_;
+    page_ptr_t page_ptr_;
+    DISABLE_COPYING(timestamped_page_ptr_t);
 };
 
 // This type's purpose is to wait for the page to be loaded, and to prevent it from
