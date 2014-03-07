@@ -70,12 +70,11 @@ void alt_txn_throttler_t::end_txn(UNUSED throttler_acq_t acq) {
 }
 
 cache_t::cache_t(serializer_t *serializer,
-                 alt_cache_balancer_t *balancer,
-                 const alt_cache_config_t &config,
+                 cache_balancer_t *balancer,
                  perfmon_collection_t *perfmon_collection)
     : stats_(make_scoped<alt_cache_stats_t>(perfmon_collection)),
       throttler_(),
-      page_cache_(serializer, balancer, config.page_config) { }
+      page_cache_(serializer, balancer) { }
 
 cache_t::~cache_t() { }
 

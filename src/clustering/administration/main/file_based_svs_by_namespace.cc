@@ -16,7 +16,7 @@ struct store_args_t {
     store_args_t(io_backender_t *_io_backender,
                  const base_path_t &_base_path,
                  namespace_id_t _namespace_id,
-                 alt_cache_balancer_t *_balancer,
+                 cache_balancer_t *_balancer,
                  perfmon_collection_t *_serializers_perfmon_collection,
                  typename protocol_t::context_t *_ctx)
         : io_backender(_io_backender), base_path(_base_path),
@@ -28,7 +28,7 @@ struct store_args_t {
     io_backender_t *io_backender;
     base_path_t base_path;
     namespace_id_t namespace_id;
-    alt_cache_balancer_t *balancer;
+    cache_balancer_t *balancer;
     perfmon_collection_t *serializers_perfmon_collection;
     typename protocol_t::context_t *ctx;
 };

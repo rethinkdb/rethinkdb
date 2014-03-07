@@ -6,13 +6,13 @@
 
 #include "clustering/administration/reactor_driver.hpp"
 
-class alt_cache_balancer_t;
+class cache_balancer_t;
 
 template <class protocol_t>
 class file_based_svs_by_namespace_t : public svs_by_namespace_t<protocol_t> {
 public:
     file_based_svs_by_namespace_t(io_backender_t *io_backender,
-                                  alt_cache_balancer_t *balancer,
+                                  cache_balancer_t *balancer,
                                   const base_path_t& base_path)
         : io_backender_(io_backender), balancer_(balancer),
           base_path_(base_path), thread_counter_(0) { }
@@ -29,7 +29,7 @@ public:
 
 private:
     io_backender_t *io_backender_;
-    alt_cache_balancer_t *balancer_;
+    cache_balancer_t *balancer_;
     const base_path_t base_path_;
 
     threadnum_t next_thread(int num_db_threads);

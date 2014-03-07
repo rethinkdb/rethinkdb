@@ -7,6 +7,7 @@
 #include "arch/runtime/thread_pool.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "containers/archive/buffer_group_stream.hpp"
 #include "clustering/immediate_consistency/branch/history.hpp"
 #include "serializer/config.hpp"
@@ -121,9 +122,8 @@ void persistent_file_t<metadata_t>::construct_serializer_and_cache(const bool cr
     }
 
     {
-        alt_cache_config_t cache_dynamic_config;
-        cache_dynamic_config.page_config.memory_limit = MEGABYTE;
-        cache.init(new cache_t(serializer.get(), NULL, cache_dynamic_config, perfmon_parent));
+        balancer.init(new dummy_cache_balancer_t(MEGABYTE));
+        cache.init(new cache_t(serializer.get(), balancer.get(), perfmon_parent));
         cache_conn.init(new cache_conn_t(cache.get()));
     }
 

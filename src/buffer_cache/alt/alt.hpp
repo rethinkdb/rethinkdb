@@ -14,13 +14,10 @@
 class serializer_t;
 
 class buf_lock_t;
-class alt_cache_config_t;
 class alt_cache_stats_t;
 class alt_snapshot_node_t;
 class perfmon_collection_t;
-
-// TODO: no namespace alt in this file?
-class alt_cache_balancer_t;
+class cache_balancer_t;
 
 class alt_txn_throttler_t {
 public:
@@ -40,8 +37,7 @@ private:
 class cache_t : public home_thread_mixin_t {
 public:
     explicit cache_t(serializer_t *serializer,
-                     alt_cache_balancer_t *balancer,
-                     const alt_cache_config_t &dynamic_config,
+                     cache_balancer_t *balancer,
                      perfmon_collection_t *perfmon_collection);
     ~cache_t();
 

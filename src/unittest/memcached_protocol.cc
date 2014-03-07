@@ -1,5 +1,6 @@
 // Copyright 2010-2014 RethinkDB, all rights reserved.
 #include "memcached/protocol.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "serializer/config.hpp"
 #include "serializer/translator.hpp"
 #include "serializer/merger.hpp"
@@ -42,10 +43,12 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<mem
     serializer_multiplexer_t::create(ptrs, shards.size());
     multiplexer.init(new serializer_multiplexer_t(ptrs));
 
+    dummy_cache_balancer_t balancer(GIGABYTE);
+
     boost::ptr_vector<memcached_protocol_t::store_t> underlying_stores;
     for (size_t i = 0; i < shards.size(); ++i) {
         underlying_stores.push_back(
-                new memcached_protocol_t::store_t(multiplexer->proxies[i], NULL,
+                new memcached_protocol_t::store_t(multiplexer->proxies[i], &balancer,
                     temp_file.name().permanent_path() + strprintf("_%zd", i),
                     true, &get_global_perfmon_collection(), NULL,
                     &io_backender, base_path_t(".")));

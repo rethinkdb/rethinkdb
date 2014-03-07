@@ -214,7 +214,7 @@ dummy_protocol_t::store_t::store_t() : store_view_t<dummy_protocol_t>(dummy_prot
 }
 
 dummy_protocol_t::store_t::store_t(serializer_t *_serializer,
-                                   UNUSED alt_cache_balancer_t *,
+                                   UNUSED cache_balancer_t *,
                                    UNUSED const std::string &,
                                    bool create,
                                    UNUSED perfmon_collection_t *, UNUSED context_t *,

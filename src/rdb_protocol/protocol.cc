@@ -1033,7 +1033,7 @@ void write_t::unshard(write_response_t *responses, size_t count,
 }
 
 store_t::store_t(serializer_t *serializer,
-                 alt_cache_balancer_t *balancer,
+                 cache_balancer_t *balancer,
                  const std::string &perfmon_name,
                  bool create,
                  perfmon_collection_t *parent_perfmon_collection,

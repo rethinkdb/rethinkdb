@@ -25,7 +25,7 @@ sindex_not_post_constructed_exc_t::~sindex_not_post_constructed_exc_t() throw() 
 
 template <class protocol_t>
 btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
-                                         alt_cache_balancer_t *balancer,
+                                         cache_balancer_t *balancer,
                                          const std::string &perfmon_name,
                                          bool create,
                                          perfmon_collection_t *parent_perfmon_collection,
@@ -38,15 +38,7 @@ btree_store_t<protocol_t>::btree_store_t(serializer_t *serializer,
       perfmon_collection_membership(parent_perfmon_collection, &perfmon_collection, perfmon_name)
 {
     {
-        alt_cache_config_t config;
-        // TODO: don't allow NULL balancers
-        if (balancer != NULL) {
-            config.page_config.memory_limit = balancer->get_base_mem_per_store();
-        } else {
-            // TODO: this is really small
-            config.page_config.memory_limit = BASE_CACHE_SIZE;
-        }
-        cache.init(new cache_t(serializer, balancer, config, &perfmon_collection));
+        cache.init(new cache_t(serializer, balancer, &perfmon_collection));
         general_cache_conn.init(new cache_conn_t(cache.get()));
     }
 

@@ -177,7 +177,7 @@ public:
     class store_t : public btree_store_t<memcached_protocol_t> {
     public:
         store_t(serializer_t *serializer,
-                alt_cache_balancer_t *balancer,
+                cache_balancer_t *balancer,
                 const std::string &perfmon_name,
                 bool create,
                 perfmon_collection_t *collection,

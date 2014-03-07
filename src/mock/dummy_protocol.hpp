@@ -20,7 +20,7 @@
 class signal_t;
 class io_backender_t;
 class serializer_t;
-class alt_cache_balancer_t;
+class cache_balancer_t;
 
 namespace mock {
 
@@ -107,7 +107,7 @@ public:
         typedef region_map_t<dummy_protocol_t, binary_blob_t> metainfo_t;
 
         store_t();
-        store_t(serializer_t *serializer, alt_cache_balancer_t *balancer,
+        store_t(serializer_t *serializer, cache_balancer_t *balancer,
                 const std::string &perfmon_name, bool create,
                 perfmon_collection_t *collection, context_t *ctx,
                 io_backender_t *io, const base_path_t &);

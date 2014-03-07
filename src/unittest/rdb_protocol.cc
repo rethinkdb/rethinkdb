@@ -3,6 +3,7 @@
 #include <boost/shared_ptr.hpp>
 
 #include "clustering/administration/metadata.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "extproc/extproc_pool.hpp"
 #include "extproc/extproc_spawner.hpp"
 #include "memcached/protocol.hpp"
@@ -77,9 +78,11 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
                                   dummy_auth, &read_manager, generate_uuid(),
                                   &get_global_perfmon_collection());
 
+    dummy_cache_balancer_t balancer(GIGABYTE);
+
     for (size_t i = 0; i < store_shards.size(); ++i) {
         underlying_stores.push_back(
-                new rdb_protocol_t::store_t(serializers[i].get(), NULL,
+                new rdb_protocol_t::store_t(serializers[i].get(), &balancer,
                     temp_files[i].name().permanent_path(), true,
                     &get_global_perfmon_collection(), &ctx,
                     &io_backender, base_path_t(".")));

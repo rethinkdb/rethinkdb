@@ -6,6 +6,7 @@
 #include "arch/timing.hpp"
 #include "btree/btree_store.hpp"
 #include "btree/operations.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "containers/archive/boost_types.hpp"
 #include "containers/archive/vector_stream.hpp"
 #include "rdb_protocol/btree.hpp"
@@ -488,18 +489,18 @@ TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
         &file_opener,
         &get_global_perfmon_collection());
 
+    dummy_cache_balancer_t balancer(GIGABYTE);
+
     scoped_ptr_t<rdb_protocol_t::store_t> store(
             new rdb_protocol_t::store_t(
             &serializer,
-            NULL,
+            &balancer,
             "unit_test_store",
             true,
             &get_global_perfmon_collection(),
             NULL,
             &io_backender,
             base_path_t(".")));
-
-    cond_t dummy_interruptor;
 
     insert_rows(0, (TOTAL_KEYS_TO_INSERT * 9) / 10, store.get());
 

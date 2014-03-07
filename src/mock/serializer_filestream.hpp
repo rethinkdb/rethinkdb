@@ -7,6 +7,7 @@
 #include "containers/scoped.hpp"
 #include "errors.hpp"
 
+class cache_balancer_t;
 class cache_t;
 class cache_conn_t;
 class serializer_t;
@@ -26,6 +27,7 @@ public:
 
 private:
     // In this cache, no blocks have parents.
+    scoped_ptr_t<cache_balancer_t> balancer_;
     scoped_ptr_t<cache_t> cache_;
     scoped_ptr_t<cache_conn_t> cache_conn_;
     int64_t known_size_;
@@ -44,6 +46,7 @@ public:
 
 private:
     // In this cache, every block (except block zero) has block zero as its parent.
+    scoped_ptr_t<cache_balancer_t> balancer_;
     scoped_ptr_t<cache_t> cache_;
     scoped_ptr_t<cache_conn_t> cache_conn_;
     int64_t size_;

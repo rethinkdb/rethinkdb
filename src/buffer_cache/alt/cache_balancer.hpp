@@ -15,7 +15,41 @@ namespace alt {
     class evicter_t;
 }
 
+// Base class so we can have a dummy implementation for tests
+class cache_balancer_t {
+public:
+    cache_balancer_t() { }
+    virtual ~cache_balancer_t() { }
+
+    virtual uint64_t get_base_mem_per_store() const = 0;
+
+protected:
+    friend class alt::evicter_t;
+
+    virtual void add_evicter(alt::evicter_t *evicter) = 0;
+    virtual void remove_evicter(alt::evicter_t *evicter) = 0;
+};
+
+// Dummy balancer that does nothing but provide the initial size of a cache
+class dummy_cache_balancer_t : public cache_balancer_t {
+public:
+    dummy_cache_balancer_t(uint64_t _base_mem_per_store) :
+        base_mem_per_store(_base_mem_per_store) { }
+    ~dummy_cache_balancer_t() { }
+
+    uint64_t get_base_mem_per_store() const {
+        return base_mem_per_store;
+    }
+
+private:
+    void add_evicter(alt::evicter_t *) { }
+    void remove_evicter(alt::evicter_t *) { }
+
+    uint64_t base_mem_per_store;
+};
+
 class alt_cache_balancer_t :
+    public cache_balancer_t,
     public home_thread_mixin_t,
     public coro_pool_callback_t<void *>,
     public repeating_timer_callback_t

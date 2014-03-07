@@ -5,23 +5,19 @@
 
 namespace alt {
 
-evicter_t::evicter_t(alt_cache_balancer_t *balancer,
-                     uint64_t memory_limit)
-    : balancer_(balancer), memory_limit_(memory_limit),
+evicter_t::evicter_t(cache_balancer_t *balancer)
+    : balancer_(balancer),
       cache_miss_counter_(0),
       access_time_counter_(INITIAL_ACCESS_TIME)
 {
-    // TODO: guarantee this once fully integrated
-    if (balancer_ != NULL) {
-        balancer_->add_evicter(this);
-    }
+    guarantee(balancer_ != NULL);
+    memory_limit_ = balancer_->get_base_mem_per_store();
+    balancer_->add_evicter(this);
 }
 
 evicter_t::~evicter_t() {
     assert_thread();
-    if (balancer_ != NULL) {
-        balancer_->remove_evicter(this);
-    }
+    balancer_->remove_evicter(this);
 }
 
 void evicter_t::update_memory_limit(uint64_t new_memory_limit) {

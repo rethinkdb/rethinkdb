@@ -10,7 +10,6 @@
 
 #include "buffer_cache/alt/block_version.hpp"
 #include "buffer_cache/alt/cache_account.hpp"
-#include "buffer_cache/alt/config.hpp"
 #include "buffer_cache/alt/evicter.hpp"
 #include "buffer_cache/alt/free_list.hpp"
 #include "buffer_cache/alt/page.hpp"
@@ -27,7 +26,7 @@
 #include "serializer/types.hpp"
 
 class alt_txn_throttler_t;
-class alt_cache_balancer_t;
+class cache_balancer_t;
 class auto_drainer_t;
 class cache_t;
 class file_account_t;
@@ -293,8 +292,7 @@ private:
 class page_cache_t : public home_thread_mixin_t {
 public:
     page_cache_t(serializer_t *serializer,
-                 alt_cache_balancer_t *balancer,
-                 const page_cache_config_t &config);
+                 cache_balancer_t *balancer);
     ~page_cache_t();
 
     // Takes a txn to be flushed.  Calls on_flush_complete() (which resets the
@@ -393,8 +391,6 @@ private:
     free_list_t *free_list() { return &free_list_; }
 
     void resize_current_pages_to_id(block_id_t block_id);
-
-    const page_cache_config_t dynamic_config_;
 
     // We use separate I/O accounts for reads and writes, so reads can pass ahead of
     // flushes.  The rationale behind this is that reads are almost always blocking

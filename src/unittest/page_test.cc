@@ -3,6 +3,7 @@
 #include "arch/timing.hpp"
 #include "buffer_cache/alt/page_cache.hpp"
 #include "buffer_cache/alt/alt.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "concurrency/auto_drainer.hpp"
 #include "concurrency/pmap.hpp"
 #include "containers/scoped.hpp"
@@ -44,12 +45,10 @@ class test_txn_t;
 
 class test_cache_t : public page_cache_t {
 public:
-    test_cache_t(serializer_t *serializer, alt_txn_throttler_t *throttler)
-        : page_cache_t(serializer, NULL, page_cache_config_t()),
-          throttler_(throttler) { }
-    test_cache_t(serializer_t *serializer, alt_txn_throttler_t *throttler,
-                 uint64_t memory_limit)
-        : page_cache_t(serializer, NULL, make_config(memory_limit)),
+    test_cache_t(serializer_t *serializer, 
+                 cache_balancer_t *balancer,
+                 alt_txn_throttler_t *throttler)
+        : page_cache_t(serializer, balancer),
           throttler_(throttler) { }
 
     void flush(scoped_ptr_t<test_txn_t> txn) {
@@ -63,12 +62,6 @@ public:
     }
 
 private:
-    static page_cache_config_t make_config(uint64_t memory_limit) {
-        page_cache_config_t ret;
-        ret.memory_limit = memory_limit;
-        return ret;
-    }
-
     alt_txn_throttler_t *throttler_;
 };
 
@@ -129,19 +122,22 @@ TPTEST(PageTest, Control, 4) {
 
 TPTEST(PageTest, CreateDestroy, 4) {
     mock_ser_t mock;
-    test_cache_t page_cache(mock.ser.get(), mock.throttler.get());
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    test_cache_t page_cache(mock.ser.get(), &balancer, mock.throttler.get());
 }
 
 TPTEST(PageTest, OneTxn, 4) {
     mock_ser_t mock;
-    test_cache_t page_cache(mock.ser.get(), mock.throttler.get());
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    test_cache_t page_cache(mock.ser.get(), &balancer, mock.throttler.get());
     auto txn = make_scoped<test_txn_t>(&page_cache);
     page_cache.flush(std::move(txn));
 }
 
 TPTEST(PageTest, TwoIndependentTxn, 4) {
     mock_ser_t mock;
-    test_cache_t page_cache(mock.ser.get(), mock.throttler.get());
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    test_cache_t page_cache(mock.ser.get(), &balancer, mock.throttler.get());
     auto txn1 = make_scoped<test_txn_t>(&page_cache);
     auto txn2 = make_scoped<test_txn_t>(&page_cache);
     page_cache.flush(std::move(txn2));
@@ -150,7 +146,8 @@ TPTEST(PageTest, TwoIndependentTxn, 4) {
 
 TPTEST(PageTest, TwoIndependentTxnSwitch, 4) {
     mock_ser_t mock;
-    test_cache_t page_cache(mock.ser.get(), mock.throttler.get());
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    test_cache_t page_cache(mock.ser.get(), &balancer, mock.throttler.get());
     auto txn1 = make_scoped<test_txn_t>(&page_cache);
     auto txn2 = make_scoped<test_txn_t>(&page_cache);
     page_cache.flush(std::move(txn1));
@@ -159,7 +156,8 @@ TPTEST(PageTest, TwoIndependentTxnSwitch, 4) {
 
 TPTEST(PageTest, TwoSequentialTxnSwitch, 4) {
     mock_ser_t mock;
-    test_cache_t page_cache(mock.ser.get(), mock.throttler.get());
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    test_cache_t page_cache(mock.ser.get(), &balancer, mock.throttler.get());
     auto txn1 = make_scoped<test_txn_t>(&page_cache);
     auto txn2 = make_scoped<test_txn_t>(&page_cache);
     page_cache.flush(std::move(txn1));
@@ -168,7 +166,8 @@ TPTEST(PageTest, TwoSequentialTxnSwitch, 4) {
 
 TPTEST(PageTest, OneWriteAcq, 4) {
     mock_ser_t mock;
-    test_cache_t page_cache(mock.ser.get(), mock.throttler.get());
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    test_cache_t page_cache(mock.ser.get(), &balancer, mock.throttler.get());
     auto txn = make_scoped<test_txn_t>(&page_cache);
     {
         current_test_acq_t acq(txn.get(), 0, access_t::write, page_create_t::yes);
@@ -179,7 +178,8 @@ TPTEST(PageTest, OneWriteAcq, 4) {
 
 TPTEST(PageTest, OneWriteAcqOneReadAcq, 4) {
     mock_ser_t mock;
-    test_cache_t page_cache(mock.ser.get(), mock.throttler.get());
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    test_cache_t page_cache(mock.ser.get(), &balancer, mock.throttler.get());
     auto txn1 = make_scoped<test_txn_t>(&page_cache);
     {
         current_test_acq_t acq(txn1.get(), 0, access_t::write, page_create_t::yes);
@@ -197,7 +197,8 @@ TPTEST(PageTest, OneWriteAcqOneReadAcq, 4) {
 
 TPTEST(PageTest, OneWriteAcqWait, 4) {
     mock_ser_t mock;
-    test_cache_t page_cache(mock.ser.get(), mock.throttler.get());
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    test_cache_t page_cache(mock.ser.get(), &balancer, mock.throttler.get());
     auto txn = make_scoped<test_txn_t>(&page_cache);
     {
         current_test_acq_t acq(txn.get(), alt_create_t::create);
@@ -255,7 +256,8 @@ void ReadAfterWrite_cases(ReadAfterWrite_state_t *s, test_cache_t *cache, int i)
 
 TPTEST(PageTest, ReadAfterWrite, 4) {
     mock_ser_t mock;
-    test_cache_t page_cache(mock.ser.get(), mock.throttler.get());
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    test_cache_t page_cache(mock.ser.get(), &balancer, mock.throttler.get());
     ReadAfterWrite_state_t s;
     pmap(2, std::bind(&ReadAfterWrite_cases, &s, &page_cache, ph::_1));
 }
@@ -300,7 +302,8 @@ void WriteWaitForFlush_cases(WriteWaitForFlush_state_t *s, test_cache_t *cache, 
 
 TPTEST(PageTest, WriteWaitForFlush, 4) {
     mock_ser_t mock;
-    test_cache_t page_cache(mock.ser.get(), mock.throttler.get());
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    test_cache_t page_cache(mock.ser.get(), &balancer, mock.throttler.get());
     WriteWaitForFlush_state_t s;
     pmap(2, std::bind(&WriteWaitForFlush_cases, &s, &page_cache, ph::_1));
 }
@@ -317,7 +320,8 @@ public:
 
     void run() {
         {
-            test_cache_t cache(mock.ser.get(), mock.throttler.get(), memory_limit);
+            dummy_cache_balancer_t balancer(memory_limit);
+            test_cache_t cache(mock.ser.get(), &balancer, mock.throttler.get());
             auto_drainer_t drain;
             c = &cache;
 
@@ -362,7 +366,8 @@ public:
         c = NULL;
 
         {
-            test_cache_t cache(mock.ser.get(), mock.throttler.get(), memory_limit);
+            dummy_cache_balancer_t balancer(memory_limit);
+            test_cache_t cache(mock.ser.get(), &balancer, mock.throttler.get());
             auto_drainer_t drain;
             c = &cache;
             coro_t::spawn_ordered(std::bind(&bigger_test_t::run_txn14,
@@ -373,7 +378,8 @@ public:
         c = NULL;
 
         {
-            test_cache_t cache(mock.ser.get(), mock.throttler.get(), memory_limit);
+            dummy_cache_balancer_t balancer(memory_limit);
+            test_cache_t cache(mock.ser.get(), &balancer, mock.throttler.get());
             c = &cache;
             auto txn = make_scoped<test_txn_t>(c);
 

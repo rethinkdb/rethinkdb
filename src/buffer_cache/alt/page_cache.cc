@@ -139,16 +139,14 @@ void page_cache_t::read_ahead_cb_is_destroyed() {
 
 
 page_cache_t::page_cache_t(serializer_t *serializer,
-                           alt_cache_balancer_t *balancer,
-                           const page_cache_config_t &config)
-    : dynamic_config_(config),
-      serializer_(serializer),
+                           cache_balancer_t *balancer)
+    : serializer_(serializer),
       free_list_(serializer),
-      evicter_(balancer, config.memory_limit),
+      evicter_(balancer),
       read_ahead_cb_(NULL),
       drainer_(make_scoped<auto_drainer_t>()) {
 
-    const bool start_read_ahead = config.memory_limit > 0;
+    const bool start_read_ahead = evicter_.get_memory_limit() > 0;
     if (start_read_ahead) {
         read_ahead_cb_existence_ = drainer_->lock();
     }
@@ -156,12 +154,11 @@ page_cache_t::page_cache_t(serializer_t *serializer,
     {
         on_thread_t thread_switcher(serializer->home_thread());
         if (start_read_ahead) {
-            read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this,
-                                                      config.memory_limit);
+            read_ahead_cb_ = new page_read_ahead_cb_t(serializer, this, evicter_.get_memory_limit());
         }
         default_reads_account_.init(serializer->home_thread(),
-                                    serializer->make_io_account(config.io_priority_reads));
-        writes_io_account_.init(serializer->make_io_account(config.io_priority_writes));
+                                    serializer->make_io_account(CACHE_READS_IO_PRIORITY));
+        writes_io_account_.init(serializer->make_io_account(CACHE_WRITES_IO_PRIORITY));
         index_write_sink_.init(new fifo_enforcer_sink_t);
         recencies_ = serializer->get_all_recencies();
     }
@@ -316,7 +313,7 @@ cache_account_t page_cache_t::create_cache_account(int priority) {
 
     // Be aware of rounding errors... (what can be do against those? probably just
     // setting the default io_priority_reads high enough)
-    int io_priority = std::max(1, dynamic_config_.io_priority_reads * priority / 100);
+    int io_priority = std::max(1, CACHE_READS_IO_PRIORITY * priority / 100);
 
     // TODO: This is a heuristic. While it might not be evil, it's not really optimal
     // either.

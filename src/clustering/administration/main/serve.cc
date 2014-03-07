@@ -258,7 +258,7 @@ bool do_serve(
         rdb_ctx.ns_repo = &rdb_namespace_repo;
 
         {
-            scoped_ptr_t<alt_cache_balancer_t> cache_balancer;
+            scoped_ptr_t<cache_balancer_t> cache_balancer;
 
             if (i_am_a_server) {
                 // Proxies do not have caches to balance

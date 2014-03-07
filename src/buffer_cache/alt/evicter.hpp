@@ -6,7 +6,7 @@
 #include "buffer_cache/alt/eviction_bag.hpp"
 #include "threading.hpp"
 
-class alt_cache_balancer_t;
+class cache_balancer_t;
 
 namespace alt {
 
@@ -22,8 +22,7 @@ public:
     eviction_bag_t *correct_eviction_category(page_t *page);
     void remove_page(page_t *page);
 
-    explicit evicter_t(alt_cache_balancer_t *balancer,
-                       uint64_t memory_limit);
+    explicit evicter_t(cache_balancer_t *balancer);
     ~evicter_t();
 
     bool interested_in_read_ahead_block(uint32_t ser_block_size) const;
@@ -58,7 +57,7 @@ private:
 
     void inform_tracker() const;
 
-    alt_cache_balancer_t *const balancer_;
+    cache_balancer_t *const balancer_;
     uint64_t memory_limit_;
     uint64_t in_memory_size_;
 

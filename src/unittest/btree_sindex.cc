@@ -6,6 +6,7 @@
 #include "btree/operations.hpp"
 #include "buffer_cache/alt/alt.hpp"
 #include "buffer_cache/alt/blob.hpp"
+#include "buffer_cache/alt/cache_balancer.hpp"
 #include "unittest/unittest_utils.hpp"
 #include "rdb_protocol/btree.hpp"
 #include "rdb_protocol/protocol.hpp"
@@ -28,9 +29,8 @@ TPTEST(BTreeSindex, LowLevelOps) {
         &file_opener,
         &get_global_perfmon_collection());
 
-    cache_t cache(&serializer, NULL,
-                  alt_cache_config_t(),
-                  &get_global_perfmon_collection());
+    dummy_cache_balancer_t balancer(GIGABYTE);
+    cache_t cache(&serializer, &balancer, &get_global_perfmon_collection());
     cache_conn_t cache_conn(&cache);
 
     {
