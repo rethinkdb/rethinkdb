@@ -675,7 +675,13 @@ void buf_lock_t::detach_child(block_id_t child_id) {
 repli_timestamp_t buf_lock_t::get_recency() const {
     ASSERT_NO_CORO_WAITING;
     guarantee(!empty());
-    return current_page_acq()->recency();
+    current_page_acq_t *cpa = current_page_acq();
+    guarantee(cpa != NULL);
+    cpa->read_acq_signal()->wait();
+
+    ASSERT_FINITE_CORO_WAITING;
+    guarantee(!empty());
+    return cpa->recency();
 }
 
 page_t *buf_lock_t::get_held_page_for_read() {
