@@ -712,6 +712,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                 // This is bad, because there's some code, that merely wants to
                 // delete a page, or get its recency, that will surprisingly load it.
                 cur->snapshotted_page_.init(
+                        cur->recency_,
                         the_page_for_read_or_deleted(help,
                                                      account),
                         help.page_cache);
@@ -891,13 +892,12 @@ void page_txn_t::remove_acquirer(current_page_acq_t *acq) {
         // Since we snapshotted the lead acquirer, it gets detached.
         rassert(acq->current_page_ == NULL);
         // Steal the snapshotted page_ptr_t.
-        page_ptr_t local = std::move(acq->snapshotted_page_);
+        timestamped_page_ptr_t local = std::move(acq->snapshotted_page_);
         // It's okay to have two dirtied_page_t's or touched_page_t's for the
         // same block id -- compute_changes handles this.
         snapshotted_dirtied_pages_.push_back(dirtied_page_t(block_version,
                                                             acq->block_id(),
-                                                            std::move(local),
-                                                            acq->recency()));
+                                                            std::move(local)));
         // If you keep writing and reacquiring the same page, though, the count
         // might be off and you could excessively throttle new operations.
 
@@ -938,7 +938,7 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
 
             block_change_t change(d.block_version, true,
                                   d.ptr.has() ? d.ptr.get_page_for_read() : NULL,
-                                  d.tstamp);
+                                  d.ptr.has() ? d.ptr.timestamp() : repli_timestamp_t::invalid);
 
             auto res = changes.insert(std::make_pair(d.block_id, change));
 
@@ -946,18 +946,19 @@ page_cache_t::compute_changes(const std::set<page_txn_t *> &txns) {
                 // The insertion failed -- we need to use the newer version.
                 auto const jt = res.first;
                 // The versions can't be the same for different write operations.
-                rassert(jt->second.version != d.block_version,
+                rassert(jt->second.version != change.version,
                         "equal versions on block %" PRIi64 ": %" PRIu64,
                         d.block_id,
-                        d.block_version.debug_value());
-                if (jt->second.version < d.block_version) {
-                    rassert(d.tstamp ==
-                            superceding_recency(jt->second.tstamp, d.tstamp));
+                        change.version.debug_value());
+                if (jt->second.version < change.version) {
+                    rassert(change.page == NULL ||
+                            change.tstamp == superceding_recency(jt->second.tstamp, change.tstamp));
                     jt->second = change;
                 }
             }
         }
     }
+
     for (auto it = txns.begin(); it != txns.end(); ++it) {
         page_txn_t *txn = *it;
         for (size_t i = 0, e = txn->touched_pages_.size(); i < e; ++i) {

@@ -397,12 +397,39 @@ page_t *page_ptr_t::get_page_for_write(page_cache_t *page_cache,
 }
 
 timestamped_page_ptr_t::timestamped_page_ptr_t()
-    : timestamp_(repli_timestamp_t::invalid) {
-    (void)timestamp_;  // RSI
+    : timestamp_(repli_timestamp_t::invalid) { }
+
+timestamped_page_ptr_t::timestamped_page_ptr_t(timestamped_page_ptr_t &&movee)
+    : timestamp_(movee.timestamp_), page_ptr_(std::move(movee.page_ptr_)) {
+    movee.timestamp_ = repli_timestamp_t::invalid;
+    movee.page_ptr_.reset();
+}
+
+timestamped_page_ptr_t &timestamped_page_ptr_t::operator=(timestamped_page_ptr_t &&movee) {
+    timestamped_page_ptr_t tmp(std::move(movee));
+    std::swap(timestamp_, tmp.timestamp_);
+    std::swap(page_ptr_, tmp.page_ptr_);
+    return *this;
 }
 
 timestamped_page_ptr_t::~timestamped_page_ptr_t() { }
 
+bool timestamped_page_ptr_t::has() const {
+    return page_ptr_.has();
+}
+
+void timestamped_page_ptr_t::init(repli_timestamp_t timestamp,
+                                  page_t *page,
+                                  page_cache_t *page_cache) {
+    rassert(timestamp_ == repli_timestamp_t::invalid);
+    rassert(timestamp != repli_timestamp_t::invalid);
+    timestamp_ = timestamp;
+    page_ptr_.init(page, page_cache);
+}
+
+page_t *timestamped_page_ptr_t::get_page_for_read() const {
+    return page_ptr_.get_page_for_read();
+}
 
 
 }  // namespace alt

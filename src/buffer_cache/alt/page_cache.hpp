@@ -220,7 +220,7 @@ private:
     // At most one of current_page_ is null or snapshotted_page_ is null, unless the
     // acquired page has been deleted, in which case both are null.
     current_page_t *current_page_;
-    page_ptr_t snapshotted_page_;
+    timestamped_page_ptr_t snapshotted_page_;
     cond_t read_cond_;
     cond_t write_cond_;
 
@@ -440,36 +440,28 @@ private:
 class dirtied_page_t {
 public:
     dirtied_page_t()
-        : block_id(NULL_BLOCK_ID),
-          tstamp(repli_timestamp_t::invalid) { }
+        : block_id(NULL_BLOCK_ID) { }
     dirtied_page_t(block_version_t _block_version,
-                   block_id_t _block_id, page_ptr_t &&_ptr,
-                   repli_timestamp_t _tstamp)
+                   block_id_t _block_id, timestamped_page_ptr_t &&_ptr)
         : block_version(_block_version),
           block_id(_block_id),
-          ptr(std::move(_ptr)),
-          tstamp(_tstamp) { }
+          ptr(std::move(_ptr)) { }
     dirtied_page_t(dirtied_page_t &&movee)
         : block_version(movee.block_version),
           block_id(movee.block_id),
-          ptr(std::move(movee.ptr)),
-          tstamp(movee.tstamp) { }
+          ptr(std::move(movee.ptr)) { }
     dirtied_page_t &operator=(dirtied_page_t &&movee) {
         block_version = movee.block_version;
         block_id = movee.block_id;
         ptr = std::move(movee.ptr);
-        tstamp = movee.tstamp;
         return *this;
     }
     // Our block version of the dirty page.
     block_version_t block_version;
     // The block id of the dirty page.
     block_id_t block_id;
-    // The pointer to the snapshotted dirty page value.  (If empty, the page was
-    // deleted.)
-    page_ptr_t ptr;
-    // The timestamp of the modification.
-    repli_timestamp_t tstamp;
+    // The snapshotted dirty page value.  (If empty, the page was deleted.)
+    timestamped_page_ptr_t ptr;
 };
 
 class touched_page_t {
