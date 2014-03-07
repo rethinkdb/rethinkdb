@@ -208,8 +208,8 @@ private:
 
     current_page_help_t help() const;
 
-    void pulse_read_available();
-    void pulse_write_available();
+    void pulse_read_available(repli_timestamp_t recency);
+    void pulse_write_available(repli_timestamp_t recency);
 
     page_cache_t *page_cache_;
     page_txn_t *the_txn_;

@@ -342,20 +342,20 @@ struct current_page_help_t {
 };
 
 current_page_acq_t::current_page_acq_t()
-    : page_cache_(NULL), the_txn_(NULL) { }
+    : page_cache_(NULL), the_txn_(NULL), recency_(valgrind_undefined(repli_timestamp_t::invalid)) { }
 
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
                                        block_id_t block_id,
                                        access_t access,
                                        cache_account_t *account,
                                        page_create_t create)
-    : page_cache_(NULL), the_txn_(NULL) {
+    : page_cache_(NULL), the_txn_(NULL), recency_(valgrind_undefined(repli_timestamp_t::invalid)) {
     init(txn, block_id, access, account, create);
 }
 
 current_page_acq_t::current_page_acq_t(page_txn_t *txn,
                                        alt_create_t create)
-    : page_cache_(NULL), the_txn_(NULL) {
+    : page_cache_(NULL), the_txn_(NULL), recency_(valgrind_undefined(repli_timestamp_t::invalid)) {
     init(txn, create);
 }
 
@@ -363,7 +363,7 @@ current_page_acq_t::current_page_acq_t(page_cache_t *page_cache,
                                        block_id_t block_id,
                                        cache_account_t *account,
                                        read_access_t read)
-    : page_cache_(NULL), the_txn_(NULL) {
+    : page_cache_(NULL), the_txn_(NULL), recency_(valgrind_undefined(repli_timestamp_t::invalid)) {
     init(page_cache, block_id, account, read);
 }
 
@@ -485,6 +485,7 @@ page_t *current_page_acq_t::current_page_for_read(cache_account_t *account) {
 
 repli_timestamp_t current_page_acq_t::recency() const {
     assert_thread();
+    rassert(read_cond_.is_pulsed());
     return recency_;
 }
 
@@ -529,13 +530,15 @@ current_page_help_t current_page_acq_t::help() const {
     return current_page_help_t(block_id(), page_cache_);
 }
 
-void current_page_acq_t::pulse_read_available() {
+void current_page_acq_t::pulse_read_available(repli_timestamp_t recency) {
     assert_thread();
+    recency_ = recency;
     read_cond_.pulse_if_not_already_pulsed();
 }
 
-void current_page_acq_t::pulse_write_available() {
+void current_page_acq_t::pulse_write_available(repli_timestamp_t recency) {
     assert_thread();
+    recency_ = recency;
     write_cond_.pulse_if_not_already_pulsed();
 }
 
@@ -588,8 +591,6 @@ void current_page_t::make_non_deleted(block_size_t block_size,
 void current_page_t::add_acquirer(current_page_acq_t *acq,
                                   cache_account_t *account) {
     const block_version_t prev_version = last_write_acquirer_version_;
-    const repli_timestamp_t prev_recency
-        = acq->page_cache()->recency_for_block_id(acq->block_id());
 
     if (acq->access_ == access_t::write) {
         block_version_t v = prev_version.subsequent();
@@ -598,14 +599,7 @@ void current_page_t::add_acquirer(current_page_acq_t *acq,
         rassert(acq->the_txn_ != NULL);
         page_txn_t *const acq_txn = acq->the_txn_;
 
-        // Out of order recencies can happen when acquiring the stats block, or when
-        // two shards share the same B-tree.
-        repli_timestamp_t r = superceding_recency(prev_recency,
-                                                  acq_txn->this_txn_recency_);
-        acq->recency_ = r;
-
         last_write_acquirer_version_ = v;
-        acq->page_cache()->set_recency_for_block_id(acq->block_id(), r);
 
         if (last_write_acquirer_ != acq_txn) {
             // RSP: Performance (in the assertion).
@@ -633,7 +627,6 @@ void current_page_t::add_acquirer(current_page_acq_t *acq,
     } else {
         rassert(acq->the_txn_ == NULL);
         acq->block_version_ = prev_version;
-        acq->recency_ = prev_recency;
     }
 
     acquirers_.push_back(acq);
@@ -682,7 +675,7 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
     while (cur != NULL) {
         // We know that the previous node has read access and has been pulsed as
         // readable, so we pulse the current node as readable.
-        cur->pulse_read_available();
+        cur->pulse_read_available(help.page_cache->recency_for_block_id(help.block_id));
 
         if (cur->access_ == access_t::read) {
             current_page_acq_t *next = acquirers_.next(cur);
@@ -750,7 +743,11 @@ void current_page_t::pulse_pulsables(current_page_acq_t *const acq,
                                      std::move(buf),
                                      help.page_cache);
                 }
-                cur->pulse_write_available();
+                repli_timestamp_t r
+                    = superceding_recency(help.page_cache->recency_for_block_id(help.block_id),
+                                          cur->the_txn_->this_txn_recency_);
+                help.page_cache->set_recency_for_block_id(help.block_id, r);
+                cur->pulse_write_available(r);
             }
             break;
         }
