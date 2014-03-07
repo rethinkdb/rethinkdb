@@ -422,7 +422,7 @@ void timestamped_page_ptr_t::init(repli_timestamp_t timestamp,
                                   page_t *page,
                                   page_cache_t *page_cache) {
     rassert(timestamp_ == repli_timestamp_t::invalid);
-    rassert(timestamp != repli_timestamp_t::invalid);
+    rassert(page == NULL || timestamp != repli_timestamp_t::invalid);
     timestamp_ = timestamp;
     page_ptr_.init(page, page_cache);
 }
