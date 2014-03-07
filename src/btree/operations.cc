@@ -337,14 +337,16 @@ void ensure_stat_block(superblock_t *sb) {
     const block_id_t node_id = sb->get_stat_block_id();
 
     if (node_id == NULL_BLOCK_ID) {
-        //Create a block
-        buf_lock_t temp_lock(buf_parent_t(sb->expose_buf().txn()),
-                             alt_create_t::create);
-        buf_write_t write(&temp_lock);
-        //Make the stat block be the default constructed statblock
+        buf_lock_t stats_block(buf_parent_t(sb->expose_buf().txn()),
+                              alt_create_t::create);
+        buf_write_t write(&stats_block);
+        // Make the stat block be the default constructed stats block.
+
+        // TODO: This would only initialize the entire stats block if
+        // sizeof(btree_statblock_t) == block_size.value().
         *static_cast<btree_statblock_t *>(write.get_data_write())
             = btree_statblock_t();
-        sb->set_stat_block_id(temp_lock.block_id());
+        sb->set_stat_block_id(stats_block.block_id());
     }
 }
 
@@ -416,8 +418,7 @@ void check_and_handle_split(value_sizer_t<void> *sizer,
     // Insert the key that sets the two nodes apart into the parent.
     if (last_buf->empty()) {
         // We're splitting what was previously the root, so create a new root to use as the parent.
-        buf_lock_t temp_buf(sb->expose_buf(), alt_create_t::create);
-        last_buf->swap(temp_buf);
+        *last_buf = buf_lock_t(sb->expose_buf(), alt_create_t::create);
         {
             buf_write_t last_write(last_buf);
             internal_node::init(sizer->block_size(),
