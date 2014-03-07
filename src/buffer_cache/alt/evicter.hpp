@@ -61,8 +61,6 @@ private:
     void update_in_memory_size();
     void evict_if_necessary();
 
-    void inform_tracker() const;
-
     cache_balancer_t *const balancer_;
     uint64_t memory_limit_;
     uint64_t in_memory_size_;

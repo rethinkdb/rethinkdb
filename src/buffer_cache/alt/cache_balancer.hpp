@@ -82,13 +82,6 @@ private:
     struct cache_data_t {
         cache_data_t(alt::evicter_t *_evicter);
 
-        void calculate_new_size(uint64_t total_evicters,
-                                uint64_t total_cache_size,
-                                uint64_t total_misses,
-                                uint64_t total_accesses,
-                                uint64_t base_mem_per_store,
-                                uint64_t damping_factor);
-
         alt::evicter_t *evicter;
         uint64_t new_size;
         uint64_t old_size;

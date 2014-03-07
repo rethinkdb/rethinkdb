@@ -86,8 +86,3 @@ tests:
       py: db.table_create('nonsense1', datacenter='bar')
       rb: db.table_create('nonsense1', :datacenter => 'bar')
       ot: err('RqlRuntimeError', 'Datacenter `bar` does not exist.', [0])
-
-    - js: db.table_create('nonsense2')
-      py: db.table_create('nonsense2')
-      rb: db.table_create('nonsense2')
-      ot: err('RqlRuntimeError', 'Expected type NUMBER but found STRING.', [0])

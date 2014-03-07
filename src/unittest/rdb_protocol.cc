@@ -47,6 +47,7 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     }
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    dummy_cache_balancer_t balancer(GIGABYTE);
 
     scoped_array_t<scoped_ptr_t<serializer_t> > serializers(store_shards.size());
     for (size_t i = 0; i < store_shards.size(); ++i) {
@@ -77,8 +78,6 @@ void run_with_namespace_interface(boost::function<void(namespace_interface_t<rdb
     rdb_protocol_t::context_t ctx(&extproc_pool, NULL, slm.get_root_view(),
                                   dummy_auth, &read_manager, generate_uuid(),
                                   &get_global_perfmon_collection());
-
-    dummy_cache_balancer_t balancer(GIGABYTE);
 
     for (size_t i = 0; i < store_shards.size(); ++i) {
         underlying_stores.push_back(

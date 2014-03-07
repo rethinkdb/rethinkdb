@@ -329,6 +329,7 @@ TPTEST(RDBBtree, SindexPostConstruct) {
     temp_file_t temp_file;
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    dummy_cache_balancer_t balancer(GIGABYTE);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
@@ -342,7 +343,7 @@ TPTEST(RDBBtree, SindexPostConstruct) {
 
     rdb_protocol_t::store_t store(
             &serializer,
-            NULL,
+            &balancer,
             "unit_test_store",
             true,
             &get_global_perfmon_collection(),
@@ -369,6 +370,7 @@ TPTEST(RDBBtree, SindexEraseRange) {
     temp_file_t temp_file;
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    dummy_cache_balancer_t balancer(GIGABYTE);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
@@ -382,7 +384,7 @@ TPTEST(RDBBtree, SindexEraseRange) {
 
     rdb_protocol_t::store_t store(
             &serializer,
-            NULL,
+            &balancer,
             "unit_test_store",
             true,
             &get_global_perfmon_collection(),
@@ -438,6 +440,7 @@ TPTEST(RDBBtree, SindexInterruptionViaDrop) {
     temp_file_t temp_file;
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    dummy_cache_balancer_t balancer(GIGABYTE);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
@@ -451,7 +454,7 @@ TPTEST(RDBBtree, SindexInterruptionViaDrop) {
 
     rdb_protocol_t::store_t store(
             &serializer,
-            NULL,
+            &balancer,
             "unit_test_store",
             true,
             &get_global_perfmon_collection(),
@@ -478,6 +481,7 @@ TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
     temp_file_t temp_file;
 
     io_backender_t io_backender(file_direct_io_mode_t::buffered_desired);
+    dummy_cache_balancer_t balancer(GIGABYTE);
 
     filepath_file_opener_t file_opener(temp_file.name(), &io_backender);
     standard_serializer_t::create(
@@ -488,8 +492,6 @@ TPTEST(RDBBtree, SindexInterruptionViaStoreDelete) {
         standard_serializer_t::dynamic_config_t(),
         &file_opener,
         &get_global_perfmon_collection());
-
-    dummy_cache_balancer_t balancer(GIGABYTE);
 
     scoped_ptr_t<rdb_protocol_t::store_t> store(
             new rdb_protocol_t::store_t(
